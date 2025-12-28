@@ -1,0 +1,193 @@
+-- database: ./techstore_dw.db
+
+SELECT * FROM Fact_Sales;
+
+-- total revenue from Fact_Sales
+SELECT SUM(total_revenue) as total FROM Fact_Sales;
+
+-- NET profit from Fact_Sales
+SELECT SUM(net_profit) as total FROM Fact_Sales;
+
+-- KPI 3 : Target Achievement (%) - VERSION SIMPLE
+SELECT 
+    ds.store_id,
+    ds.store_name,
+    ds.manager_name,
+    
+    -- Ventes réelles du mois
+    COALESCE(SUM(fs.total_revenue), 0) as actual_sales,
+    
+    -- Objectif
+    ds.target_revenue,
+    
+    -- Calcul du pourcentage
+    CASE 
+        WHEN ds.target_revenue IS NULL OR ds.target_revenue = 0 THEN 0
+        ELSE ROUND((COALESCE(SUM(fs.total_revenue), 0) * 100.0 / ds.target_revenue), 2)
+    END as achievement_percent,
+    
+    -- Status
+    CASE 
+        WHEN ds.target_revenue IS NULL OR ds.target_revenue = 0 THEN 'No Target'
+        WHEN COALESCE(SUM(fs.total_revenue), 0) >= ds.target_revenue THEN '✅ Target Achieved'
+        ELSE '❌ Below Target'
+    END as status
+    
+FROM Dim_Store ds
+LEFT JOIN Fact_Sales fs ON ds.store_id = fs.store_id
+LEFT JOIN Dim_Date d ON fs.date_key = d.date_key
+    AND d.year = 2024  -- REMPLACE par l'année voulue
+    AND d.month = 1    -- REMPLACE par le mois voulu
+GROUP BY ds.store_id, ds.store_name, ds.manager_name, ds.target_revenue
+ORDER BY achievement_percent DESC;
+
+-- KPI 4: Average Sentiment Score - Version Simple
+SELECT 
+    ROUND(AVG(avg_sentiment_score), 3) as average_sentiment_score,
+    
+    -- Interprétation
+    CASE 
+        WHEN AVG(avg_sentiment_score) >= 0.5 THEN 'Très Positif 😊'
+        WHEN AVG(avg_sentiment_score) >= 0.2 THEN 'Positif 🙂'
+        WHEN AVG(avg_sentiment_score) >= -0.2 THEN 'Neutre 😐'
+        WHEN AVG(avg_sentiment_score) >= -0.5 THEN 'Négatif 🙁'
+        ELSE 'Très Négatif 😠'
+    END as sentiment_category,
+    
+    -- Nombre de produits analysés
+    COUNT(*) as products_analyzed,
+    
+    -- Nombre d'avis total
+    SUM(review_count) as total_reviews
+FROM Dim_Product
+WHERE avg_sentiment_score IS NOT NULL;
+
+
+-- top 3 selling product 
+SELECT category_name, product_id, product_name, total_quantity_sold, ranking
+FROM (
+    SELECT 
+        dp.category_name,
+        dp.product_id,
+        dp.product_name,
+        SUM(fs.quantity) as total_quantity_sold,
+        RANK() OVER (
+            PARTITION BY dp.category_name 
+            ORDER BY SUM(fs.quantity) DESC
+        ) as ranking
+    FROM Fact_Sales fs
+    JOIN Dim_Product dp ON fs.product_id = dp.product_id
+    GROUP BY dp.category_name, dp.product_id, dp.product_name
+) ranked_products
+WHERE ranking <= 3
+ORDER BY category_name, ranking;
+
+-- Marketing ROI par catégorie
+SELECT 
+    dp.category_name as Category,
+    SUM(fs.marketing_cost_per_sale) as Marketing_Spend,
+    SUM(fs.total_revenue) as Revenue_Generated,
+    SUM(fs.net_profit) as Net_Profit,
+    
+    -- Calcul ROI = (Net Profit - Marketing Cost) / Marketing Cost
+    ROUND(
+        (SUM(fs.net_profit) - SUM(fs.marketing_cost_per_sale)) / 
+        NULLIF(SUM(fs.marketing_cost_per_sale), 0) * 100, 
+        2
+    ) as ROI_Percent
+FROM Fact_Sales fs
+JOIN Dim_Product dp ON fs.product_id = dp.product_id
+WHERE fs.marketing_cost_per_sale > 0
+GROUP BY dp.category_name
+ORDER BY ROI_Percent DESC;
+
+-- year_revenu
+SELECT 
+    d.year,
+    d.month,
+    -- Revenu mensuel
+    SUM(fs.total_revenue) as monthly_revenue,
+    -- Revenu cumulé YTD
+    SUM(SUM(fs.total_revenue)) OVER (
+        PARTITION BY d.year 
+        ORDER BY d.month
+    ) as ytd_revenue
+FROM Fact_Sales fs
+JOIN Dim_Date d ON fs.date_key = d.date_key
+WHERE d.year = 2024  -- Année spécifique
+GROUP BY d.year, d.month
+ORDER BY d.year, d.month;
+
+-- price competitiveness and margin opportunity
+SELECT 
+    product_name,
+    unit_price,
+    competitor_price,
+    
+    -- Simple status
+    CASE 
+        WHEN unit_price > competitor_price THEN 'Overpriced'
+        ELSE 'Good Price'
+    END as price_status,
+    
+    -- Marge analysis
+    CASE 
+        WHEN (competitor_price - unit_cost) > (unit_price - unit_cost) 
+            THEN 'Could Increase Price'
+        ELSE 'Price OK'
+    END as margin_opportunity
+    
+FROM Dim_Product
+WHERE competitor_price IS NOT NULL;
+
+
+-- ranking 10 best clients by total revenue
+-- 
+SELECT 
+    RANK() OVER (ORDER BY total_spent DESC) as "Classement",
+    full_name as "Client",
+    region as "Ville",
+    total_spent as "Total Dépensé (DZD)",
+    purchase_count as "Nombre d'Achats"
+FROM (
+    SELECT 
+        dc.full_name,
+        dc.region,
+        SUM(fs.total_revenue) as total_spent,
+        COUNT(*) as purchase_count
+    FROM Fact_Sales fs
+    JOIN Dim_Customer dc ON fs.customer_id = dc.customer_id
+    GROUP BY dc.customer_id, dc.full_name, dc.region
+)
+ORDER BY total_spent DESC
+LIMIT 10;
+
+
+-- performing stores 
+-- Top 5 Magasins par profit
+SELECT 
+    ds.store_name as "Magasin",
+    ds.city_name as "Ville",
+    ds.manager_name as "Manager",
+    ROUND(SUM(fs.total_revenue), 2) as "CA Total",
+    ROUND(SUM(fs.net_profit), 2) as "Profit",
+    ROUND(AVG(fs.profit_margin_percent), 2) as "Marge %"
+FROM Fact_Sales fs
+JOIN Dim_Store ds ON fs.store_id = ds.store_id
+GROUP BY ds.store_id, ds.store_name, ds.city_name, ds.manager_name
+ORDER BY SUM(fs.net_profit) DESC
+LIMIT 5;
+
+
+-- Performance des ventes par région
+SELECT 
+    ds.region as "Région",
+    COUNT(DISTINCT fs.store_id) as "Nombre de Magasins",
+    COUNT(fs.transaction_id) as "Nombre de Transactions",
+    ROUND(SUM(fs.total_revenue), 2) as "Chiffre d'Affaires",
+    ROUND(SUM(fs.net_profit), 2) as "Profit Total",
+    ROUND(AVG(fs.profit_margin_percent), 2) as "Marge Moyenne %"
+FROM Fact_Sales fs
+JOIN Dim_Store ds ON fs.store_id = ds.store_id
+GROUP BY ds.region
+ORDER BY SUM(fs.total_revenue) DESC;

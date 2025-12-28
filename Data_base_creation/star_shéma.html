@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schéma en Étoile - Projet BI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header .student-info {
+            color: #555;
+            font-size: 1.2em;
+            margin-top: 10px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .schema-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .table {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .table:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .table-header {
+            padding: 15px;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        .fact-table .table-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .dim-table .table-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .table-body {
+            padding: 15px;
+        }
+
+        .field {
+            padding: 8px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-size: 0.9em;
+            border-left: 3px solid #667eea;
+        }
+
+        .field.pk {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            font-weight: bold;
+        }
+
+        .field.fk {
+            background: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+
+        .field.measure {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        .fact-table {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .dim-date {
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        .dim-customer {
+            grid-column: 3;
+            grid-row: 1;
+        }
+
+        .dim-store {
+            grid-column: 1;
+            grid-row: 3;
+        }
+
+        .dim-product {
+            grid-column: 3;
+            grid-row: 3;
+        }
+
+        .legend {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-box {
+            width: 30px;
+            height: 20px;
+            border-radius: 3px;
+        }
+
+        .download-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .download-btn {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Schéma en Étoile - Projet BI</h1>
+        <div class="student-info">
+            <strong>ABDELLI Mohammed El Amine</strong><br>
+            4ème Ingénieur - Groupe 1
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="schema-wrapper">
+            <!-- Dim_Date -->
+            <div class="table dim-table dim-date">
+                <div class="table-header">📅 Dim_Date</div>
+                <div class="table-body">
+                    <div class="field pk">🔑 date_key (PK) - INTEGER</div>
+                    <div class="field">full_date - DATE</div>
+                    <div class="field">year - INTEGER</div>
+                    <div class="field">month - INTEGER</div>
+                    <div class="field">quarter - INTEGER</div>
+                    <div class="field">month_name - TEXT</div>
+                    <div class="field">day_of_week - TEXT</div>
+                </div>
+            </div>
+
+            <!-- Dim_Customer -->
+            <div class="table dim-table dim-customer">
+                <div class="table-header">👥 Dim_Customer</div>
+                <div class="table-body">
+                    <div class="field pk">🔑 customer_id (PK) - TEXT</div>
+                    <div class="field">full_name - TEXT</div>
+                    <div class="field">city_id - INTEGER</div>
+                    <div class="field">city_name - TEXT</div>
+                    <div class="field">region - TEXT</div>
+                </div>
+            </div>
+
+            <!-- Fact_Sales (Centre) -->
+            <div class="table fact-table">
+                <div class="table-header">⭐ Fact_Sales (Table de Faits)</div>
+                <div class="table-body">
+                    <div class="field pk">🔑 transaction_id (PK) - INTEGER</div>
+                    <div class="field fk">🔗 date_key (FK) - INTEGER</div>
+                    <div class="field fk">🔗 store_id (FK) - INTEGER</div>
+                    <div class="field fk">🔗 product_id (FK) - TEXT</div>
+                    <div class="field fk">🔗 customer_id (FK) - TEXT</div>
+                    <hr style="margin: 10px 0;">
+                    <div class="field measure">📊 quantity - INTEGER</div>
+                    <div class="field measure">📊 total_revenue - REAL</div>
+                    <div class="field measure">📊 unit_cost - REAL</div>
+                    <div class="field measure">📊 product_cost_total - REAL</div>
+                    <div class="field measure">📊 shipping_cost - REAL</div>
+                    <div class="field measure">📊 marketing_cost_per_sale - REAL</div>
+                    <div class="field measure">📊 net_profit - REAL</div>
+                    <div class="field measure">📊 profit_margin_percent - REAL</div>
+                    <hr style="margin: 10px 0;">
+                    <div class="field">category_name - TEXT</div>
+                    <div class="field">region - TEXT</div>
+                </div>
+            </div>
+
+            <!-- Dim_Store -->
+            <div class="table dim-table dim-store">
+                <div class="table-header">🏪 Dim_Store</div>
+                <div class="table-body">
+                    <div class="field pk">🔑 store_id (PK) - INTEGER</div>
+                    <div class="field">store_name - TEXT</div>
+                    <div class="field">city_id - INTEGER</div>
+                    <div class="field">city_name - TEXT</div>
+                    <div class="field">region - TEXT</div>
+                    <div class="field">manager_name - TEXT</div>
+                    <div class="field">target_revenue - REAL</div>
+                </div>
+            </div>
+
+            <!-- Dim_Product -->
+            <div class="table dim-table dim-product">
+                <div class="table-header">📦 Dim_Product</div>
+                <div class="table-body">
+                    <div class="field pk">🔑 product_id (PK) - TEXT</div>
+                    <div class="field">product_name - TEXT</div>
+                    <div class="field">category_id - INTEGER</div>
+                    <div class="field">category_name - TEXT</div>
+                    <div class="field">subcategory_id - INTEGER</div>
+                    <div class="field">subcategory_name - TEXT</div>
+                    <div class="field">unit_price - REAL</div>
+                    <div class="field">unit_cost - REAL</div>
+                    <div class="field">competitor_price - REAL</div>
+                    <div class="field">avg_sentiment_score - REAL</div>
+                    <div class="field">review_count - INTEGER</div>
+                    <div class="field">avg_rating - REAL</div>
+                    <div class="field">profit_margin_percent - REAL</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box" style="background: #fff3cd; border-left: 3px solid #ffc107;"></div>
+                <span>🔑 Clé Primaire (PK)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #d1ecf1; border-left: 3px solid #17a2b8;"></div>
+                <span>🔗 Clé Étrangère (FK)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #d4edda; border-left: 3px solid #28a745;"></div>
+                <span>📊 Mesures</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #f8f9fa; border-left: 3px solid #667eea;"></div>
+                <span>Attributs</span>
+            </div>
+        </div>
+    </div>
+
+    <button class="download-btn" onclick="window.print()">📥 Télécharger en PDF</button>
+
+    <script>
+        // Animation au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            const tables = document.querySelectorAll('.table');
+            tables.forEach((table, index) => {
+                table.style.opacity = '0';
+                table.style.transform = 'scale(0.8)';
+                setTimeout(() => {
+                    table.style.transition = 'all 0.5s ease';
+                    table.style.opacity = '1';
+                    table.style.transform = 'scale(1)';
+                }, index * 100);
+            });
+        });
+    </script>
+</body>
+</html>
